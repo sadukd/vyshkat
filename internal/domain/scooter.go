@@ -4,7 +4,7 @@ type Scooter struct {
 	name string
 	id int
 	energy float64
-	dif_level int8
+	easeOfUse int
 }
 
 func (s Scooter) Name() string {
@@ -19,6 +19,6 @@ func (s Scooter) EnergyConsumption() float64 {
 	return s.energy
 }
 
-func (s Scooter) EaseOfUse() int8 {
-	return s.dif_level
+func (s Scooter) EaseOfUse() int {
+	return s.easeOfUse
 }

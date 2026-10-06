@@ -1,6 +1,6 @@
 package domain
 
 type InventoryItem interface {
-	ItemName() string
-	InventoryNumber() int
+	Name() string
+	Number() int
 }

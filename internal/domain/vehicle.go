@@ -1,6 +1,7 @@
 package domain
 
 type Vehicle interface {
-	VehicleName() string
+	InventoryItem
 	VehicleNumber() int
+	EaseOfUse() int8
 }

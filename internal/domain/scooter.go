@@ -3,9 +3,9 @@ package domain
 import "strings"
 
 type Scooter struct {
-	name string
-	id int
-	energy float64
+	name      string
+	id        int
+	energy    float64
 	easeOfUse int
 }
 
@@ -48,9 +48,9 @@ func NewScooter(
 	}
 
 	return &Scooter{
-		name: name,
-		id: id,
-		energy: energy,
+		name:      name,
+		id:        id,
+		energy:    energy,
 		easeOfUse: easeOfUse,
 	}, nil
 }

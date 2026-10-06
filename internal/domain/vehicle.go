@@ -2,5 +2,5 @@ package domain
 
 type Vehicle interface {
 	InventoryItem
-	EaseOfUse() int8
+	EaseOfUse() int
 }

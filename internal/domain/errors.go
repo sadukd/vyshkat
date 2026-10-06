@@ -4,18 +4,18 @@ import "errors"
 
 var (
 	ErrInvalidEaseOfUse = errors.New(
-		"Error: Ease of use should be between 1 and 10.",
+		"ease of use must be between 1 and 10",
 	)
 	ErrInvalidEnergyConsumption = errors.New(
-		"Error: Energy consumption cannot be negative.",
+		"energy consumption cannot be negative",
 	)
 	ErrNegativeItemNumber = errors.New(
-		"Error: Item number cannot be negative.",
+		"item number cannot be negative",
 	)
 	ErrItemNumberExists = errors.New(
-		"Error: Item number cannot be duplicate.",
+		"item number already exists",
 	)
 	ErrEmptyName = errors.New(
-		"Error: No name given to item.",
+		"item name cannot be empty",
 	)
 )

@@ -23,6 +23,7 @@ func (c ChargingStation) EnergyConsumption() float64 {
 func NewChargingStation(
 	name string,
 	id int,
+	energy float64,
 ) (*ChargingStation, error) {
 	if id < 0 {
 		return nil, ErrNegativeItemNumber
@@ -31,6 +32,10 @@ func NewChargingStation(
 	if strings.TrimSpace(name) == "" {
 		return nil, ErrEmptyName
 	}
+
+	if energy < 0 {
+        return nil, ErrInvalidEnergyConsumption
+    }
 
 	return &ChargingStation{
 		name: name,

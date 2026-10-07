@@ -3,9 +3,9 @@ package domain
 import "strings"
 
 type ChargingStation struct {
-	name      string
-	id        int
-	energy    float64
+	name   string
+	id     int
+	energy float64
 }
 
 func (c ChargingStation) Name() string {
@@ -33,7 +33,7 @@ func NewChargingStation(
 	}
 
 	return &ChargingStation{
-		name:      name,
-		id:        id,
+		name: name,
+		id:   id,
 	}, nil
 }

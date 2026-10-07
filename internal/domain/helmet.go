@@ -3,16 +3,16 @@ package domain
 import "strings"
 
 type Helmet struct {
-	name      string
-	id        int
+	name string
+	id   int
 }
 
-func (b Helmet) Name() string {
-	return b.name
+func (h Helmet) Name() string {
+	return h.name
 }
 
-func (b Helmet) Number() int {
-	return b.id
+func (h Helmet) Number() int {
+	return h.id
 }
 
 func NewHelmet(
@@ -28,7 +28,7 @@ func NewHelmet(
 	}
 
 	return &Helmet{
-		name:      name,
-		id:        id,
+		name: name,
+		id:   id,
 	}, nil
 }

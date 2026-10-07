@@ -12,9 +12,6 @@ var (
 	ErrNegativeItemNumber = errors.New(
 		"item number cannot be negative",
 	)
-	ErrItemNumberExists = errors.New(
-		"item number already exists",
-	)
 	ErrEmptyName = errors.New(
 		"item name cannot be empty",
 	)

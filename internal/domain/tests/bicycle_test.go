@@ -27,20 +27,20 @@ func TestBicycle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			bicycle, err := domain.NewBycicle(tt.bicycle, tt.id, tt.easeOfUse)
+			bicycle, err := domain.NewBicycle(tt.bicycle, tt.id, tt.easeOfUse)
 			if !errors.Is(err, tt.wantErr) {
-				t.Fatalf("NewBycicle() error = %v, want %v", err, tt.wantErr)
+				t.Fatalf("NewBicycle() error = %v, want %v", err, tt.wantErr)
 			}
 			if tt.wantErr != nil {
 				if bicycle != nil {
-					t.Errorf("NewBycicle() = %#v, want nil", bicycle)
+					t.Errorf("NewBicycle() = %#v, want nil", bicycle)
 				}
 				return
 			}
 
 			if bicycle.Name() != tt.bicycle || bicycle.Number() != tt.id ||
 				bicycle.EaseOfUse() != tt.easeOfUse {
-				t.Errorf("NewBycicle() did not preserve its input values")
+				t.Errorf("NewBicycle() did not preserve its input values")
 			}
 		})
 	}

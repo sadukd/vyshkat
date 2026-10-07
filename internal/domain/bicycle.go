@@ -3,8 +3,8 @@ package domain
 import "strings"
 
 type Bicycle struct {
-	name string
-	id int
+	name      string
+	id        int
 	easeOfUse int
 }
 
@@ -20,7 +20,7 @@ func (b Bicycle) EaseOfUse() int {
 	return b.easeOfUse
 }
 
-func NewBycicle(
+func NewBicycle(
 	name string,
 	id int,
 	easeOfUse int,

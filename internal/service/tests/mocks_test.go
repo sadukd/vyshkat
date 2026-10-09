@@ -24,10 +24,13 @@ func (m *itemMock) Number() int { return m.number }
 type vehicleMock struct {
 	itemMock
 	easeOfUse int
+	condition int
 	energy    float64
 }
 
 func (m *vehicleMock) EaseOfUse() int { return m.easeOfUse }
+
+func (m *vehicleMock) Condition() int { return m.condition }
 
 func (m *vehicleMock) EnergyConsumption() float64 { return m.energy }
 

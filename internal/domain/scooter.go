@@ -7,6 +7,7 @@ type Scooter struct {
 	id        int
 	energy    float64
 	easeOfUse int
+	condition int
 }
 
 func (s Scooter) Name() string {
@@ -25,14 +26,23 @@ func (s Scooter) EaseOfUse() int {
 	return s.easeOfUse
 }
 
+func (s Scooter) Condition() int {
+	return s.condition
+}
+
 func NewScooter(
 	name string,
 	id int,
 	energy float64,
 	easeOfUse int,
+	condition int,
 ) (*Scooter, error) {
 	if easeOfUse < 1 || easeOfUse > 10 {
 		return nil, ErrInvalidEaseOfUse
+	}
+
+	if condition < 0 || condition > 10 {
+		return nil, ErrInvalidCondition
 	}
 
 	if id < 0 {
@@ -52,5 +62,6 @@ func NewScooter(
 		id:        id,
 		energy:    energy,
 		easeOfUse: easeOfUse,
+		condition: condition,
 	}, nil
 }

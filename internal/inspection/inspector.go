@@ -7,9 +7,9 @@ const MinAcceptedCondition = 7
 type Inspector struct{}
 
 func NewInspector() *Inspector {
-    return &Inspector{}
+	return &Inspector{}
 }
 
 func (i *Inspector) Inspect(vehicle domain.Vehicle) bool {
-    return vehicle.Condition() >= MinAcceptedCondition
+	return vehicle.Condition() >= MinAcceptedCondition
 }

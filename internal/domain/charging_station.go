@@ -34,11 +34,12 @@ func NewChargingStation(
 	}
 
 	if energy < 0 {
-        return nil, ErrInvalidEnergyConsumption
-    }
+		return nil, ErrInvalidEnergyConsumption
+	}
 
 	return &ChargingStation{
-		name: name,
-		id:   id,
+		name:   name,
+		id:     id,
+		energy: energy,
 	}, nil
 }

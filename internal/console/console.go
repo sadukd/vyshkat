@@ -10,108 +10,100 @@ import (
 	"strings"
 
 	"vyshkat/internal/domain"
-	"vyshkat/internal/service"
 )
 
 const pageSize = 10
 
+type InventoryService interface {
+	AddVehicle(vehicle domain.Vehicle) error
+	AddItem(item domain.InventoryItem) error
+	FindInventoryItem(number int) (domain.InventoryItem, error)
+	RemoveVehicle(number int) error
+	RemoveItem(number int) error
+	Inventory() []domain.InventoryItem
+	InventoryCount() int
+	VehicleCount() int
+	TotalEnergyConsumption() float64
+	BeginnerVehicles() []domain.Vehicle
+}
+
+type NumberProvider interface {
+	Next() (int, error)
+}
+
+type menuOption struct {
+	label  string
+	action func() error
+}
+
 type Console struct {
 	input     *bufio.Scanner
 	output    io.Writer
-	service   *service.Service
-	generator *service.NumberGenerator
+	service   InventoryService
+	generator NumberProvider
 }
 
-func New(input io.Reader, output io.Writer, inventoryService *service.Service, generator *service.NumberGenerator) *Console {
+func New(input io.Reader, output io.Writer, inventoryService InventoryService, generator NumberProvider) *Console {
 	return &Console{input: bufio.NewScanner(input), output: output, service: inventoryService, generator: generator}
 }
 
 func (c *Console) Run() error {
-	for {
-		choice, err := c.menu("Inventory", []string{"Add vehicle", "Add item", "Reports"}, true)
-		if errors.Is(err, io.EOF) || choice == -1 {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		switch choice {
-		case 0:
-			err = c.addVehicleMenu()
-		case 1:
-			err = c.addItemMenu()
-		case 2:
-			err = c.reportsMenu()
-		}
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
+	options := []menuOption{
+		{label: "Add vehicle", action: c.addVehicleMenu},
+		{label: "Add item", action: c.addItemMenu},
+		{label: "Remove vehicle", action: c.removeVehicle},
+		{label: "Remove item", action: c.removeItem},
+		{label: "Reports", action: c.reportsMenu},
 	}
+	err := c.runMenu("Inventory", options, "Exit")
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+	return err
 }
 
 func (c *Console) addVehicleMenu() error {
-	for {
-		choice, err := c.menu("Add vehicle", []string{"Bicycle", "Scooter"}, false)
-		if err != nil || choice == -1 {
-			return err
-		}
-		if choice == 0 {
-			err = c.addBicycle()
-		} else {
-			err = c.addScooter()
-		}
-		if err != nil {
-			return err
-		}
+	options := []menuOption{
+		{label: "Bicycle", action: c.addBicycle},
+		{label: "Scooter", action: c.addScooter},
 	}
+	return c.runMenu("Add vehicle", options, "Back")
 }
 
 func (c *Console) addItemMenu() error {
-	for {
-		choice, err := c.menu("Add item", []string{"Helmet", "Charging station"}, false)
-		if err != nil || choice == -1 {
-			return err
-		}
-		if choice == 0 {
-			err = c.addHelmet()
-		} else {
-			err = c.addChargingStation()
-		}
-		if err != nil {
-			return err
-		}
+	options := []menuOption{
+		{label: "Helmet", action: c.addHelmet},
+		{label: "Charging station", action: c.addChargingStation},
 	}
+	return c.runMenu("Add item", options, "Back")
 }
 
 func (c *Console) reportsMenu() error {
-	options := []string{"All inventory", "Beginner vehicles", "Vehicle count", "Total energy consumption"}
-	for {
-		choice, err := c.menu("Reports", options, false)
-		if err != nil || choice == -1 {
-			return err
-		}
-		switch choice {
-		case 0:
-			err = c.showInventory("All inventory", c.service.Inventory())
-		case 1:
-			vehicles := c.service.BeginnerVehicles()
-			items := make([]domain.InventoryItem, len(vehicles))
-			for i, vehicle := range vehicles {
-				items[i] = vehicle
-			}
-			err = c.showInventory("Beginner vehicles", items)
-		case 2:
-			err = c.showValue("Vehicle count", c.service.VehicleCount())
-		case 3:
-			err = c.showValue("Total energy consumption", c.service.TotalEnergyConsumption())
-		}
-		if err != nil {
-			return err
-		}
+	options := []menuOption{
+		{label: "All inventory", action: func() error {
+			return c.showInventory("All inventory", c.service.Inventory())
+		}},
+		{label: "Beginner vehicles", action: c.showBeginnerVehicles},
+		{label: "Inventory count", action: func() error {
+			return c.showValue("Inventory count", c.service.InventoryCount())
+		}},
+		{label: "Vehicle count", action: func() error {
+			return c.showValue("Vehicle count", c.service.VehicleCount())
+		}},
+		{label: "Total energy consumption", action: func() error {
+			return c.showValue("Total energy consumption", c.service.TotalEnergyConsumption())
+		}},
 	}
+	return c.runMenu("Reports", options, "Back")
+}
+
+func (c *Console) showBeginnerVehicles() error {
+	vehicles := c.service.BeginnerVehicles()
+	items := make([]domain.InventoryItem, len(vehicles))
+	for i, vehicle := range vehicles {
+		items[i] = vehicle
+	}
+	return c.showInventory("Beginner vehicles", items)
 }
 
 func (c *Console) addBicycle() error {
@@ -202,6 +194,72 @@ func (c *Console) addChargingStation() error {
 	return c.addResult(number, err)
 }
 
+func (c *Console) removeVehicle() error {
+	return c.removeInventoryItem(true)
+}
+
+func (c *Console) removeItem() error {
+	return c.removeInventoryItem(false)
+}
+
+func (c *Console) removeInventoryItem(vehicleOnly bool) error {
+	number, err := c.readInt("Inventory number: ", 1, math.MaxInt)
+	if err != nil {
+		return err
+	}
+	item, err := c.service.FindInventoryItem(number)
+	if err != nil {
+		return c.removeResult(number, err)
+	}
+	_, isVehicle := item.(domain.Vehicle)
+	if vehicleOnly && !isVehicle {
+		return c.removeResult(number, errors.New("inventory item is not a vehicle"))
+	}
+	if !vehicleOnly && isVehicle {
+		return c.removeResult(number, errors.New("vehicles must be removed through RemoveVehicle"))
+	}
+	if _, err := fmt.Fprintf(c.output, "Selected: %s\n", formatItem(item)); err != nil {
+		return err
+	}
+	kind := "item"
+	if vehicleOnly {
+		kind = "vehicle"
+	}
+	confirmed, err := c.confirm("Remove this " + kind + "? (y/n): ")
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		_, err := fmt.Fprintln(c.output, "Removal cancelled.")
+		return err
+	}
+	if vehicleOnly {
+		err = c.service.RemoveVehicle(number)
+	} else {
+		err = c.service.RemoveItem(number)
+	}
+	return c.removeResult(number, err)
+}
+
+func (c *Console) confirm(prompt string) (bool, error) {
+	for {
+		answer, err := c.readLine(prompt)
+		if err != nil {
+			return false, err
+		}
+		switch strings.ToLower(answer) {
+		case "y":
+			return true, nil
+		case "n":
+			return false, nil
+		default:
+			if _, err := fmt.Fprintln(c.output, "Enter y or n."); err != nil {
+				return false, err
+			}
+		}
+	}
+}
+
 func (c *Console) addResult(number int, addErr error) error {
 	if addErr != nil {
 		_, err := fmt.Fprintf(c.output, "Not added: %v\n", addErr)
@@ -211,32 +269,63 @@ func (c *Console) addResult(number int, addErr error) error {
 	return err
 }
 
-func (c *Console) menu(title string, options []string, exit bool) (int, error) {
+func (c *Console) removeResult(number int, removeErr error) error {
+	if removeErr != nil {
+		_, err := fmt.Fprintf(c.output, "Not removed: %v\n", removeErr)
+		return err
+	}
+	_, err := fmt.Fprintf(c.output, "Removed inventory number %d.\n", number)
+	return err
+}
+
+func (c *Console) runMenu(title string, options []menuOption, quitLabel string) error {
+	page := 0
 	for {
+		start := page * pageSize
+		end := min(start+pageSize, len(options))
+
 		if _, err := fmt.Fprintf(c.output, "\n%s\n", title); err != nil {
-			return 0, err
+			return err
 		}
-		for i, option := range options {
-			if _, err := fmt.Fprintf(c.output, "%s. %s\n", menuKey(i), option); err != nil {
-				return 0, err
+		for i, option := range options[start:end] {
+			if _, err := fmt.Fprintf(c.output, "%s. %s\n", menuKey(i), option.label); err != nil {
+				return err
 			}
 		}
-		label := "Back"
-		if exit {
-			label = "Exit"
+		prompt := "q. " + quitLabel + "\n> "
+		if len(options) > pageSize {
+			prompt = "< previous | > next | q " + strings.ToLower(quitLabel) + "\n> "
 		}
-		line, err := c.readLine("q. " + label + "\n> ")
+		line, err := c.readLine(prompt)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		if line == "q" {
-			return -1, nil
-		}
-		if index, ok := menuIndex(line, len(options)); ok {
-			return index, nil
-		}
-		if _, err := fmt.Fprintln(c.output, "Invalid choice."); err != nil {
-			return 0, err
+		switch line {
+		case "q":
+			return nil
+		case "<":
+			if page > 0 {
+				page--
+			} else if _, err := fmt.Fprintln(c.output, "No previous page."); err != nil {
+				return err
+			}
+		case ">":
+			if end < len(options) {
+				page++
+			} else if _, err := fmt.Fprintln(c.output, "No next page."); err != nil {
+				return err
+			}
+		default:
+			index, ok := menuIndex(line, end-start)
+			if !ok {
+				if _, err := fmt.Fprintln(c.output, "Invalid choice."); err != nil {
+					return err
+				}
+				continue
+			}
+			if err := options[start+index].action(); err != nil {
+				return err
+			}
 		}
 	}
 }
@@ -245,10 +334,7 @@ func (c *Console) showInventory(title string, items []domain.InventoryItem) erro
 	page := 0
 	for {
 		start := page * pageSize
-		end := start + pageSize
-		if end > len(items) {
-			end = len(items)
-		}
+		end := min(start+pageSize, len(items))
 		if _, err := fmt.Fprintf(c.output, "\n%s\n", title); err != nil {
 			return err
 		}

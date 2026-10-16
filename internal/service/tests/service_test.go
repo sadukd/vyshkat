@@ -139,6 +139,9 @@ func TestInventoryQueries(t *testing.T) {
 	if got := svc.VehicleCount(); got != 2 {
 		t.Errorf("VehicleCount() = %d, want 2", got)
 	}
+	if got := svc.InventoryCount(); got != 3 {
+		t.Errorf("InventoryCount() = %d, want 3", got)
+	}
 	if got := svc.TotalEnergyConsumption(); got != 14 {
 		t.Errorf("TotalEnergyConsumption() = %v, want 14", got)
 	}
@@ -151,4 +154,93 @@ func TestInventoryQueries(t *testing.T) {
 	if got := svc.Inventory()[0]; got != beginner {
 		t.Error("Inventory() exposed the service's internal slice")
 	}
+}
+
+func TestRemoveInventory(t *testing.T) {
+	t.Parallel()
+
+	newService := func(t *testing.T) *service.Service {
+		t.Helper()
+		svc := service.NewService(&inspectorMock{result: true})
+		for _, item := range []domain.InventoryItem{
+			&itemMock{name: "helmet", number: 1},
+			&vehicleMock{itemMock: itemMock{name: "scooter", number: 2}, easeOfUse: 6, energy: 2.5},
+			&energyItemMock{itemMock: itemMock{name: "station", number: 3}, energy: 10},
+		} {
+			var err error
+			if vehicle, ok := item.(domain.Vehicle); ok {
+				err = svc.AddVehicle(vehicle)
+			} else {
+				err = svc.AddItem(item)
+			}
+			if err != nil {
+				t.Fatalf("prepare inventory: %v", err)
+			}
+		}
+		return svc
+	}
+
+	t.Run("finds and removes items while preserving order", func(t *testing.T) {
+		svc := newService(t)
+		item, err := svc.FindInventoryItem(2)
+		if err != nil || item.Number() != 2 {
+			t.Fatalf("FindInventoryItem(2) = (%v, %v)", item, err)
+		}
+		if err := svc.RemoveVehicle(2); err != nil {
+			t.Fatalf("RemoveVehicle(2) error = %v", err)
+		}
+		if err := svc.RemoveItem(1); err != nil {
+			t.Fatalf("RemoveItem(1) error = %v", err)
+		}
+		inventory := svc.Inventory()
+		if len(inventory) != 1 || inventory[0].Number() != 3 {
+			t.Fatalf("Inventory() = %v, want only number 3", inventory)
+		}
+		if svc.VehicleCount() != 0 || svc.InventoryCount() != 1 || svc.TotalEnergyConsumption() != 10 {
+			t.Error("inventory reports were not updated after removal")
+		}
+		if len(svc.BeginnerVehicles()) != 0 {
+			t.Error("removed vehicle remains in beginner report")
+		}
+	})
+
+	t.Run("rejects missing numbers and wrong categories", func(t *testing.T) {
+		svc := newService(t)
+		before := svc.Inventory()
+		checks := []struct {
+			name string
+			err  error
+			want error
+		}{
+			{name: "find missing", err: func() error { _, err := svc.FindInventoryItem(99); return err }(), want: service.ErrInventoryItemNotFound},
+			{name: "remove missing", err: svc.RemoveItem(99), want: service.ErrInventoryItemNotFound},
+			{name: "item as vehicle", err: svc.RemoveVehicle(1), want: service.ErrNotVehicle},
+			{name: "vehicle as item", err: svc.RemoveItem(2), want: service.ErrVehicleRemovalRequired},
+		}
+		for _, check := range checks {
+			if !errors.Is(check.err, check.want) {
+				t.Errorf("%s error = %v, want %v", check.name, check.err, check.want)
+			}
+		}
+		after := svc.Inventory()
+		if len(after) != len(before) {
+			t.Fatalf("failed removal changed inventory length to %d, want %d", len(after), len(before))
+		}
+		for i := range before {
+			if after[i] != before[i] {
+				t.Errorf("failed removal changed inventory at index %d", i)
+			}
+		}
+	})
+
+	t.Run("removes final item", func(t *testing.T) {
+		svc := newService(t)
+		if err := svc.RemoveItem(3); err != nil {
+			t.Fatalf("RemoveItem(3) error = %v", err)
+		}
+		inventory := svc.Inventory()
+		if len(inventory) != 2 || inventory[0].Number() != 1 || inventory[1].Number() != 2 {
+			t.Fatalf("Inventory() numbers changed after removing final item: %v", inventory)
+		}
+	})
 }

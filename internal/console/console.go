@@ -8,11 +8,15 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"vyshkat/internal/domain"
 )
 
-const pageSize = 10
+const (
+	pageSize = 10
+	menuEdge = "≡≡≡≡≡≡"
+)
 
 type InventoryService interface {
 	AddVehicle(vehicle domain.Vehicle) error
@@ -284,13 +288,16 @@ func (c *Console) runMenu(title string, options []menuOption, quitLabel string) 
 		start := page * pageSize
 		end := min(start+pageSize, len(options))
 
-		if _, err := fmt.Fprintf(c.output, "\n%s\n", title); err != nil {
+		if err := c.writeMenuTitle(title); err != nil {
 			return err
 		}
 		for i, option := range options[start:end] {
 			if _, err := fmt.Fprintf(c.output, "%s. %s\n", menuKey(i), option.label); err != nil {
 				return err
 			}
+		}
+		if err := c.writeMenuEnd(title); err != nil {
+			return err
 		}
 		prompt := "q. " + quitLabel + "\n> "
 		if len(options) > pageSize {
@@ -335,7 +342,7 @@ func (c *Console) showInventory(title string, items []domain.InventoryItem) erro
 	for {
 		start := page * pageSize
 		end := min(start+pageSize, len(items))
-		if _, err := fmt.Fprintf(c.output, "\n%s\n", title); err != nil {
+		if err := c.writeMenuTitle(title); err != nil {
 			return err
 		}
 		if len(items) == 0 {
@@ -348,6 +355,9 @@ func (c *Console) showInventory(title string, items []domain.InventoryItem) erro
 					return err
 				}
 			}
+		}
+		if err := c.writeMenuEnd(title); err != nil {
+			return err
 		}
 
 		command, err := c.readLine("< previous | > next | q back\n> ")
@@ -378,7 +388,13 @@ func (c *Console) showInventory(title string, items []domain.InventoryItem) erro
 }
 
 func (c *Console) showValue(title string, value any) error {
-	if _, err := fmt.Fprintf(c.output, "\n%s: %v\n", title, value); err != nil {
+	if err := c.writeMenuTitle(title); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(c.output, value); err != nil {
+		return err
+	}
+	if err := c.writeMenuEnd(title); err != nil {
 		return err
 	}
 	for {
@@ -393,6 +409,17 @@ func (c *Console) showValue(title string, value any) error {
 			return err
 		}
 	}
+}
+
+func (c *Console) writeMenuTitle(title string) error {
+	_, err := fmt.Fprintf(c.output, "\n%s %s %s\n", menuEdge, title, menuEdge)
+	return err
+}
+
+func (c *Console) writeMenuEnd(title string) error {
+	width := 2*utf8.RuneCountInString(menuEdge) + utf8.RuneCountInString(title) + 2
+	_, err := fmt.Fprintln(c.output, strings.Repeat("≡", width))
+	return err
 }
 
 func (c *Console) readName() (string, error) {

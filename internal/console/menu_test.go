@@ -39,9 +39,11 @@ func TestRunMenuPaginatesAndDispatches(t *testing.T) {
 	}
 	text := output.String()
 	for _, want := range []string{
+		"≡≡≡≡≡≡ Many options ≡≡≡≡≡≡",
 		"0. Option 10",
 		"1. Option 11",
 		"2. Option 12",
+		strings.Repeat("≡", 26) + "\n< previous",
 		"< previous | > next | q back",
 		"No previous page.",
 		"No next page.",

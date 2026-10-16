@@ -42,9 +42,9 @@ func TestConsoleWorkflow(t *testing.T) {
 		"#3 Scooter: Good scooter, condition=8, ease=8, energy=2.5",
 		"#4 Helmet: Helmet",
 		"#5 Charging station: Station, energy=4.5",
-		"Inventory count: 4",
-		"Vehicle count: 2",
-		"Total energy consumption: 7",
+		"≡≡≡≡≡≡ Inventory count ≡≡≡≡≡≡\n4",
+		"≡≡≡≡≡≡ Vehicle count ≡≡≡≡≡≡\n2",
+		"≡≡≡≡≡≡ Total energy consumption ≡≡≡≡≡≡\n7",
 	} {
 		if !strings.Contains(output, want) {
 			t.Errorf("output does not contain %q", want)
@@ -90,7 +90,8 @@ func TestConsoleShowsEmptyInventory(t *testing.T) {
 	t.Parallel()
 
 	_, output := runConsole(t, "5\n1\nq\nq\nq\n")
-	if !strings.Contains(output, "All inventory\n(empty)") {
+	want := "≡≡≡≡≡≡ All inventory ≡≡≡≡≡≡\n(empty)\n" + strings.Repeat("≡", 27) + "\n< previous"
+	if !strings.Contains(output, want) {
 		t.Error("empty inventory report is missing its empty state")
 	}
 }

@@ -10,7 +10,7 @@ var (
 		"condition must be between 0 and 10",
 	)
 	ErrInvalidEnergyConsumption = errors.New(
-		"energy consumption cannot be negative",
+		"energy consumption must be a non-negative finite number",
 	)
 	ErrNegativeItemNumber = errors.New(
 		"item number cannot be negative",

@@ -33,7 +33,7 @@ func NewChargingStation(
 		return nil, ErrEmptyName
 	}
 
-	if energy < 0 {
+	if !validEnergyConsumption(energy) {
 		return nil, ErrInvalidEnergyConsumption
 	}
 

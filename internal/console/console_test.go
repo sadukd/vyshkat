@@ -44,7 +44,7 @@ func TestConsoleWorkflow(t *testing.T) {
 		"#5 Charging station: Station, energy=4.5",
 		"≡≡≡≡≡≡ Inventory count ≡≡≡≡≡≡\n4",
 		"≡≡≡≡≡≡ Vehicle count ≡≡≡≡≡≡\n2",
-		"≡≡≡≡≡≡ Total energy consumption ≡≡≡≡≡≡\n7",
+		"≡≡≡≡≡≡ Total energy consumption (kW/h) ≡≡≡≡≡≡\n7",
 	} {
 		if !strings.Contains(output, want) {
 			t.Errorf("output does not contain %q", want)

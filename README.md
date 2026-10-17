@@ -1,86 +1,78 @@
 # VyshKat
 
-VyshKat is a Go console application developed as a coursework project for managing the inventory of a small kick-sharing service. The application stores vehicles and supporting equipment, assigns inventory numbers, requires a technical inspection before accepting vehicles, and provides operational inventory reports.
+VyshKat — консольное приложение на Go, разработанное в рамках курсовой работы для управления инвентарём небольшого сервиса кикшеринга. Приложение хранит транспортные средства и вспомогательное оборудование, присваивает инвентарные номера, требует технического осмотра перед приёмом транспорта и формирует отчёты по инвентарю.
 
-## Features
+## Возможности
 
-- Add bicycles and scooters to inventory after mandatory technical inspection.
-- Add helmets and charging stations as non-vehicle inventory items.
-- Generate sequential inventory numbers that are unique within the running application.
-- Display all inventory with pagination of 10 records per page.
-- Remove vehicles and non-vehicle items by inventory number after confirmation.
-- Count all inventory records and vehicles separately.
-- Sum the daily energy consumption of every object implementing `domain.EnergyConsumer`.
-- List vehicles suitable for beginners.
+- Добавление велосипедов и самокатов после обязательного технического осмотра.
+- Добавление шлемов и зарядных станций как нетранспортных объектов.
+- Генерация последовательных уникальных инвентарных номеров.
+- Постраничный вывод всего инвентаря по 10 записей.
+- Удаление объектов по инвентарному номеру после подтверждения.
+- Отдельный подсчёт всех объектов и транспортных средств.
+- Суммирование суточного энергопотребления объектов, реализующих `domain.EnergyConsumer`.
+- Вывод транспорта, подходящего для начинающих.
 
-Inventory numbers start at `1` and increase monotonically. A number is generated before a vehicle is inspected, so a rejected vehicle consumes its number and may leave a gap. Removing an object does not make its number available for reuse.
+Номера начинаются с `1` и монотонно возрастают. Номер генерируется до осмотра, поэтому отклонённый транспорт использует свой номер и может оставить пропуск. Номера удалённых объектов повторно не используются.
 
-## Domain rules and validation
+## Правила предметной области и валидация
 
-The constructors in `internal/domain` protect the entity invariants, while technical admission is handled separately by `internal/inspection`.
+Конструкторы в `internal/domain` обеспечивают соблюдение инвариантов сущностей, а технический допуск отдельно выполняется в `internal/inspection`.
 
-| Rule | Implemented constraint |
+| Правило | Ограничение |
 |---|---|
-| Item name | Must contain at least one non-whitespace character. |
-| Inventory number in domain constructors | Must be non-negative. The production generator issues positive numbers starting at `1`. |
-| Ease of use | Integer from `1` to `10`, inclusive. |
-| Technical condition | Integer from `0` to `10`, inclusive. |
-| Vehicle inspection | A vehicle is accepted only when `Condition() >= 7`. |
-| Beginner suitability | A stored vehicle is included when `EaseOfUse() >= 6`. |
-| Energy consumption | Must be finite and non-negative; negative values, `NaN`, and infinities are rejected. |
-| Inventory uniqueness | `service.Service` rejects duplicate inventory numbers. |
+| Название | Хотя бы один непробельный символ. |
+| Инвентарный номер в конструкторах | Неотрицательный; рабочий генератор выдаёт положительные номера с `1`. |
+| Простота использования | Целое число от `1` до `10` включительно. |
+| Техническое состояние | Целое число от `0` до `10` включительно. |
+| Технический осмотр | Транспорт принимается только при `Condition() >= 7`. |
+| Пригодность для начинающих | Сохранённый транспорт включается при `EaseOfUse() >= 6`. |
+| Энергопотребление | Конечное неотрицательное число; отрицательные значения, `NaN` и бесконечности отклоняются. |
+| Уникальность | `service.Service` отклоняет повторяющиеся номера. |
 
-The inspection threshold and beginner threshold represent different rules. A vehicle must first pass inspection with condition at least `7`; among accepted vehicles, ease of use at least `6` makes it suitable for beginners.
+Порог осмотра и порог пригодности для начинающих — разные правила. Сначала транспорт должен пройти осмотр с состоянием не ниже `7`; среди принятого транспорта подходящим для начинающих считается тот, чья простота использования не ниже `6`.
 
-The intended business unit for `EnergyConsumption()` and `TotalEnergyConsumption()` is **kWh/day**. The service calculates the total by summing the values of all inventory objects implementing `EnergyConsumer`, currently scooters and charging stations.
+Единица измерения `EnergyConsumption()` и `TotalEnergyConsumption()` — **кВт⋅ч/сутки**. Сервис суммирует показатели всех объектов, реализующих `EnergyConsumer`: сейчас это самокаты и зарядные станции.
 
-## Requirements, installation, and running
+## Требования, установка и запуск
 
-The module declares **Go 1.22.2** in `go.mod`. A compatible Go installation is required.
-
-From a checked-out copy of the repository:
+В `go.mod` указана версия **Go 1.22.2**. Требуется совместимая установка Go.
 
 ```bash
 go mod download
 go run ./cmd
 ```
 
-To build and run a local executable:
+Сборка и запуск локального исполняемого файла:
 
 ```bash
 go build -o vyshkat ./cmd
 ./vyshkat
 ```
 
-The application keeps all data in memory. Stopping the process clears the inventory.
+Все данные хранятся в памяти и очищаются при завершении процесса.
 
-## Console interface
+## Консольный интерфейс
 
-The root menu contains five operations:
+Главное меню содержит пять операций:
 
-1. `Add vehicle`
-2. `Add item`
-3. `Remove vehicle`
-4. `Remove item`
-5. `Reports`
+1. `Add vehicle` — добавить транспортное средство;
+2. `Add item` — добавить объект;
+3. `Remove vehicle` — удалить транспортное средство;
+4. `Remove item` — удалить объект;
+5. `Reports` — отчёты.
 
-`Add vehicle` supports `Bicycle` and `Scooter`. Both require a name, ease of use, and technical condition; a scooter additionally requires daily energy consumption. The object receives an inventory number and is then passed to `Service.AddVehicle`, which invokes the configured `VehicleInspector`.
+`Add vehicle` поддерживает `Bicycle` и `Scooter`. Для обоих указываются название, простота использования и техническое состояние; для самоката также требуется суточное энергопотребление. Объект получает номер и передаётся в `Service.AddVehicle`, вызывающий настроенный `VehicleInspector`.
 
-`Add item` supports `Helmet` and `Charging station`. A charging station additionally requires daily energy consumption. Non-vehicle items are added through `Service.AddItem` and do not undergo vehicle inspection.
+`Add item` поддерживает `Helmet` и `Charging station`. Для зарядной станции требуется энергопотребление. Такие объекты добавляются через `Service.AddItem` и не проходят осмотр.
 
-Removal is separated by category. The user enters an inventory number, the selected object is shown, and deletion requires `y`/`n` confirmation. `Remove vehicle` rejects equipment, while `Remove item` rejects vehicles.
+Удаление разделено по категориям. Пользователь вводит номер, видит выбранный объект и подтверждает удаление через `y`/`n`. `Remove vehicle` не принимает оборудование, а `Remove item` — транспорт.
 
-The reports submenu provides:
+Отчёты показывают весь инвентарь, транспорт для начинающих, общее количество объектов, количество транспорта и суммарное энергопотребление.
 
-- all inventory;
-- vehicles suitable for beginners;
-- total inventory count;
-- vehicle count;
-- total energy consumption.
+На странице отображается до 10 записей. Клавиши `1`–`9` выбирают первые девять, `0` — десятую, `<` и `>` переключают страницы, `q` возвращает назад или завершает программу из главного меню.
 
-Menus and inventory reports support pages of up to 10 entries. Keys `1`–`9` select the first nine entries, `0` selects the tenth entry, `<` and `>` change pages, and `q` returns to the previous menu or exits from the root menu.
-
-### Example interaction
+### Пример взаимодействия
 
 ```text
 ≡≡≡≡≡≡ Inventory ≡≡≡≡≡≡
@@ -105,86 +97,72 @@ Condition (0-10): 7
 Added with inventory number 1.
 ```
 
-## Architecture
+## Архитектура
 
-The project separates domain rules, use cases, infrastructure, and user interaction.
+Проект разделяет правила предметной области, сценарии использования, инфраструктуру и взаимодействие с пользователем.
 
-| Package | Responsibility |
+| Пакет | Ответственность |
 |---|---|
-| `internal/domain` | Defines `InventoryItem`, `Vehicle`, and `EnergyConsumer`; implements `Bicycle`, `Scooter`, `Helmet`, and `ChargingStation`; validates entity construction. |
-| `internal/inspection` | Implements the production technical-inspection policy in `Inspector.Inspect`, using `MinAcceptedCondition = 7`. |
-| `internal/service` | Owns the in-memory inventory and application use cases: addition, lookup, removal, counts, energy aggregation, and beginner filtering. It also contains `NumberGenerator`. |
-| `internal/console` | Handles terminal input and output, paginated menus, input validation, entity creation flows, confirmations, and presentation formatting. |
-| `internal/app` | Acts as the composition root and assembles the dependency graph with `github.com/samber/do/v2`. |
-| `cmd` | Contains the executable entry point, resolves the console application, runs it, and shuts down the DI container. |
+| `internal/domain` | Определяет `InventoryItem`, `Vehicle`, `EnergyConsumer`; реализует `Bicycle`, `Scooter`, `Helmet`, `ChargingStation`; валидирует сущности. |
+| `internal/inspection` | Реализует политику осмотра в `Inspector.Inspect` с `MinAcceptedCondition = 7`. |
+| `internal/service` | Управляет инвентарём в памяти: добавление, поиск, удаление, подсчёт, энергопотребление и фильтрация. Содержит `NumberGenerator`. |
+| `internal/console` | Обрабатывает ввод-вывод, меню, валидацию, создание сущностей, подтверждения и форматирование. |
+| `internal/app` | Корень композиции, собирающий граф зависимостей через `github.com/samber/do/v2`. |
+| `cmd` | Точка входа: получает консольное приложение, запускает его и завершает DI-контейнер. |
 
-The service returns a copy of its inventory slice from `Inventory()`, preventing callers from replacing entries in the internal slice. Storage itself remains in memory and is owned by one `Service` instance.
+`Inventory()` возвращает копию среза, не позволяя заменить элементы внутреннего среза. Хранилище остаётся в памяти и принадлежит одному экземпляру `Service`.
 
-## Application of SOLID principles
+## Применение принципов SOLID
 
-The project applies SOLID where it helps separate the coursework responsibilities; it does not attempt to eliminate every future modification.
+### Принцип единственной ответственности
 
-### Single Responsibility Principle
+- Конструкторы валидируют сущности.
+- `inspection.Inspector` принимает решение о прохождении осмотра.
+- `service.Service` реализует сценарии работы с инвентарём.
+- `console.Console` отвечает за терминал и представление.
+- `app.NewContainer` отвечает за композицию.
 
-- Domain constructors validate entity state.
-- `inspection.Inspector` decides whether a vehicle passes technical inspection.
-- `service.Service` implements inventory use cases and queries.
-- `console.Console` owns terminal interaction and presentation.
-- `app.NewContainer` is responsible only for application composition.
+Политика осмотра отделена от сущностей и консоли, а терминальные задачи — от сервиса.
 
-This keeps inspection policy out of both entity constructors and console code, and keeps terminal concerns out of the service.
+### Принцип открытости/закрытости
 
-### Open/Closed Principle
+Отчёты зависят от возможностей, а не конкретных типов. Любой `EnergyConsumer` учитывается в `TotalEnergyConsumption`, а любой `Vehicle` — в подсчёте и фильтрации для начинающих.
 
-Service reports depend on capabilities rather than concrete types. Any stored object implementing `EnergyConsumer` contributes to `TotalEnergyConsumption`, and any `Vehicle` participates in vehicle counting and beginner filtering. These algorithms do not need a concrete-type branch for a new implementation.
+Консольная граница намеренно менее открыта: новый создаваемый тип требует обработчика и пункта меню. Для специализированной метки также нужна ветвь в `formatItem`; иначе объект показывается как `Item`, сохраняя форматирование общих возможностей.
 
-The console boundary is intentionally less open: making a new type creatable requires a new input handler and menu entry. `formatItem` also needs a type case to show a specialized label; otherwise the object is displayed as `Item` while its shared capabilities are still formatted.
+### Принцип подстановки Лисков
 
-### Liskov Substitution Principle
+`Bicycle`, `Scooter` и тестовые двойники взаимозаменяемы как `domain.Vehicle`. Инспектор и сервис используют только `Name`, `Number`, `EaseOfUse` и `Condition`. Самокаты, станции и тестовые двойники аналогично взаимозаменяемы через `EnergyConsumer`.
 
-`Bicycle`, `Scooter`, and test doubles can be passed anywhere a `domain.Vehicle` is expected. The inspector and service operate only through `Name`, `Number`, `EaseOfUse`, and `Condition`. Similarly, scooters, charging stations, and energy-consuming test doubles are interchangeable for aggregation through `EnergyConsumer`.
+### Принцип разделения интерфейсов
 
-### Interface Segregation Principle
+- `InventoryItem` предоставляет идентификационные данные;
+- `Vehicle` добавляет состояние и простоту использования;
+- `EnergyConsumer` предоставляет энергопотребление.
 
-The domain uses small capability interfaces:
+Консоль зависит от узкого `NumberProvider`, а не конкретного генератора. `console.InventoryService` объединяет только необходимые CLI сценарии.
 
-- `InventoryItem` exposes only identity data;
-- `Vehicle` extends it with condition and ease of use;
-- `EnergyConsumer` exposes only energy consumption.
+### Принцип инверсии зависимостей
 
-The console also depends on the narrow `NumberProvider` interface rather than the concrete generator. `console.InventoryService` groups exactly the use cases required by the CLI, while other packages are not forced to depend on that interface.
+`service.Service` зависит от `service.VehicleInspector`, а не `inspection.Inspector`. `console.Console` зависит от `console.InventoryService` и `console.NumberProvider`, а не конкретных реализаций.
 
-### Dependency Inversion Principle
+## Внедрение зависимостей
 
-`service.Service` depends on the `service.VehicleInspector` abstraction rather than `inspection.Inspector`. `console.Console` depends on `console.InventoryService` and `console.NumberProvider`, not on concrete service implementations. High-level workflows can therefore receive alternative implementations without importing infrastructure details.
+`internal/app/container.go` использует `github.com/samber/do/v2`. `NewContainer` регистрирует:
 
-## Dependency injection
+- `io.Reader` и `io.Writer`;
+- `inspection.Inspector` как `service.VehicleInspector`;
+- `service.Service` и псевдоним `console.InventoryService`;
+- `service.NumberGenerator` и псевдоним `console.NumberProvider`;
+- собранный из них `console.Console`.
 
-`internal/app/container.go` uses `github.com/samber/do/v2` as the composition mechanism. `NewContainer` registers:
+Конкретные реализации сосредоточены в корне композиции; остальные пакеты не импортируют DI-библиотеку. `cmd/main.go` получает `*console.Console`, запускает его и откладывает остановку контейнера.
 
-- injected `io.Reader` and `io.Writer` values;
-- `inspection.Inspector` as `service.VehicleInspector`;
-- `service.Service` and its `console.InventoryService` alias;
-- `service.NumberGenerator` and its `console.NumberProvider` alias;
-- `console.Console` assembled from those dependencies.
+Тесты подменяют зависимости без изменения рабочего кода: сервис получает `inspectorMock`, консоль — сервис в памяти, `strings.Reader` и `bytes.Buffer`; тест контейнера проверяет весь граф и повторное получение одного экземпляра сервиса.
 
-The concrete choices are confined to the composition root. The domain, inspection, service, and console packages do not import the DI library. `cmd/main.go` resolves `*console.Console`, runs it, and defers container shutdown.
+## Тестирование
 
-Tests replace dependencies without changing production code. Service tests pass `inspectorMock` directly to `service.NewService`; console tests provide an in-memory service, `strings.Reader`, and `bytes.Buffer`; the container test verifies that the complete graph resolves and that repeated service resolution returns the same instance.
-
-## Testing
-
-The test suite includes:
-
-- table-driven domain tests for valid and invalid entity construction;
-- compile-time interface conformance checks;
-- boundary tests for the inspection threshold;
-- service tests using mocks for inspection, inventory capabilities, removal errors, ordering, counts, energy totals, and beginner filtering;
-- number-generator sequence and independence tests;
-- scripted console workflow tests covering validation retries, reports, pagination, removal, confirmation, and EOF handling;
-- a DI-container integration test.
-
-Run the standard checks with:
+Набор включает табличные тесты сущностей, проверки интерфейсов при компиляции, граничные тесты осмотра, тесты сервиса с моками, тесты генератора номеров, сценарные тесты консоли и интеграционный тест DI-контейнера.
 
 ```bash
 go test ./...
@@ -192,7 +170,7 @@ go test -race ./...
 go vet ./...
 ```
 
-Generate combined coverage for all packages with:
+Объединённое покрытие:
 
 ```bash
 go test ./... -coverpkg=./... -coverprofile=coverage.out
@@ -200,37 +178,37 @@ go tool cover -func=coverage.out
 go tool cover -html=coverage.out
 ```
 
-At the time of this README update, `go test ./...`, `go test -race ./...`, and `go vet ./...` completed successfully. The combined statement coverage reported by the commands above was **83.7%**. No coverage threshold is enforced by the project.
+На момент обновления README все стандартные проверки проходили успешно, а объединённое покрытие операторов составляло **83,7 %**. Обязательный порог покрытия не установлен.
 
-## Extension scenarios
+## Сценарии расширения
 
-### New vehicle type
+### Новый тип транспорта
 
-A new transport type can implement `domain.Vehicle`; if it consumes energy, it can additionally implement `domain.EnergyConsumer`. Inspection, vehicle counting, beginner filtering, and energy aggregation will work without changes to their business algorithms. Console creation still requires a form method, a menu entry, and optionally a specialized `formatItem` case.
+Новый тип может реализовать `domain.Vehicle` и при необходимости `domain.EnergyConsumer`. Осмотр, подсчёт, фильтрация и суммирование заработают без изменения бизнес-алгоритмов. Для консоли нужны метод формы, пункт меню и, при необходимости, ветвь `formatItem`.
 
-### New equipment type
+### Новый тип оборудования
 
-New equipment can implement `domain.InventoryItem` and be handled by `Service.AddItem`. Implementing `EnergyConsumer` automatically includes it in the total. Creating it interactively still requires console code, and a specialized display name requires formatter support.
+Оборудование может реализовать `domain.InventoryItem` и добавляться через `Service.AddItem`. Реализация `EnergyConsumer` автоматически включает его в итог. Интерактивное создание и специальное название требуют поддержки консоли.
 
-### Employees
+### Сотрудники
 
-Employees are not inventory objects and are not implemented. A suitable extension would introduce a separate employee model and service rather than make employees implement `InventoryItem`. The composition root and root console menu could then connect the new module to the application.
+Сотрудники не являются инвентарными объектами и не реализованы. Их следует добавить как отдельную модель и сервис, а затем подключить модуль в корне композиции и главном меню.
 
-### Spare-parts management
+### Управление запчастями
 
-Spare parts and warehouse operations are not implemented. They can be introduced as a separate aggregate and service, with dedicated stock operations and console workflows. Existing fleet entities and inspection rules need not change unless a new use case explicitly coordinates both modules.
+Запчасти и складские операции не реализованы. Их можно добавить отдельным агрегатом и сервисом со своими операциями и консольными сценариями, не меняя существующие сущности и правила осмотра.
 
-## Limitations and known discrepancies
+## Ограничения и известные расхождения
 
-- Inventory is stored only in memory; there is no database, file storage, loading, or saving.
-- Application state is local to one process, with no authentication, authorization, networking, or multi-user synchronization.
-- Inventory numbers are not persisted and restart from `1` after each application start.
-- Generated numbers are not reused after rejection or deletion.
-- Supported console creation forms are fixed to bicycles, scooters, helmets, and charging stations.
-- Employees and spare-parts accounting are extension scenarios, not existing functionality.
-- The business meaning of energy consumption is kWh/day, but the current report title displays `kW/h`. This is a presentation-unit discrepancy in the implementation; the README does not silently correct the program output.
-- Domain constructors allow inventory number `0`, although the production generator and removal form use positive numbers starting at `1`.
+- Инвентарь хранится только в памяти; постоянного хранилища нет.
+- Состояние локально для одного процесса; нет аутентификации, авторизации, сети и многопользовательской синхронизации.
+- Номера не сохраняются и после запуска снова начинаются с `1`.
+- Номера не переиспользуются после отклонения или удаления.
+- Консоль создаёт только велосипеды, самокаты, шлемы и зарядные станции.
+- Учёт сотрудников и запчастей пока является лишь сценарием расширения.
+- Бизнес-единица энергопотребления — кВт⋅ч/сутки, но текущий заголовок отчёта выводит `kW/h`. README сохраняет это известное расхождение с реализацией.
+- Конструкторы допускают номер `0`, хотя рабочий генератор и форма удаления используют положительные номера с `1`.
 
-## Use of AI tools
+## Использование инструментов ИИ
 
-AI assistance was used during the coursework process to help extend and review tests, examine architectural and SOLID decisions, integrate and review dependency-injection wiring, identify focused implementation issues, and prepare documentation. This statement does not attribute the entire implementation to either AI or a particular person. The submitted project should be reviewed and understood by the student responsible for it.
+В ходе курсовой работы ИИ применялся для расширения и проверки тестов, анализа архитектуры и SOLID, интеграции и проверки внедрения зависимостей, поиска отдельных проблем и подготовки документации. Это не означает, что вся реализация приписывается ИИ или конкретному человеку. Студент, ответственный за работу, должен проверить и понимать представленный проект.

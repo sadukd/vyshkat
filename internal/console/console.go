@@ -95,7 +95,7 @@ func (c *Console) reportsMenu() error {
 			return c.showValue("Vehicle count", c.service.VehicleCount())
 		}},
 		{label: "Total energy consumption", action: func() error {
-			return c.showValue("Total energy consumption", c.service.TotalEnergyConsumption())
+			return c.showValue("Total energy consumption (kW/h)", c.service.TotalEnergyConsumption())
 		}},
 	}
 	return c.runMenu("Reports", options, "Back")

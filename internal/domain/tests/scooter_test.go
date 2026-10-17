@@ -2,6 +2,7 @@ package tests
 
 import (
 	"errors"
+	"math"
 	"testing"
 
 	"vyshkat/internal/domain"
@@ -25,6 +26,8 @@ func TestScooter(t *testing.T) {
 		{name: "condition below minimum", scooter: "City scooter", id: 42, energy: 1.25, easeOfUse: 8, condition: -1, wantErr: domain.ErrInvalidCondition},
 		{name: "negative item number", scooter: "City scooter", id: -1, energy: 1.25, easeOfUse: 8, condition: 5, wantErr: domain.ErrNegativeItemNumber},
 		{name: "negative energy consumption", scooter: "City scooter", id: 42, energy: -1, easeOfUse: 8, condition: 5, wantErr: domain.ErrInvalidEnergyConsumption},
+		{name: "NaN energy consumption", scooter: "City scooter", id: 42, energy: math.NaN(), easeOfUse: 8, condition: 5, wantErr: domain.ErrInvalidEnergyConsumption},
+		{name: "infinite energy consumption", scooter: "City scooter", id: 42, energy: math.Inf(1), easeOfUse: 8, condition: 5, wantErr: domain.ErrInvalidEnergyConsumption},
 		{name: "blank name", scooter: " \t\n", id: 42, energy: 1.25, easeOfUse: 8, condition: 5, wantErr: domain.ErrEmptyName},
 	}
 

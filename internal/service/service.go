@@ -19,13 +19,18 @@ func NewService(inspector VehicleInspector) *Service {
 }
 
 func (s *Service) hasNumber(number int) bool {
-	for _, item := range s.inventory {
+	_, _, found := s.findInventoryItem(number)
+	return found
+}
+
+func (s *Service) findInventoryItem(number int) (int, domain.InventoryItem, bool) {
+	for index, item := range s.inventory {
 		if item.Number() == number {
-			return true
+			return index, item, true
 		}
 	}
 
-	return false
+	return -1, nil, false
 }
 
 func (s *Service) AddVehicle(vehicle domain.Vehicle) error {
@@ -58,6 +63,44 @@ func (s *Service) Inventory() []domain.InventoryItem {
 	return append([]domain.InventoryItem(nil), s.inventory...)
 }
 
+func (s *Service) FindInventoryItem(number int) (domain.InventoryItem, error) {
+	_, item, found := s.findInventoryItem(number)
+	if !found {
+		return nil, ErrInventoryItemNotFound
+	}
+	return item, nil
+}
+
+func (s *Service) RemoveVehicle(number int) error {
+	index, item, found := s.findInventoryItem(number)
+	if !found {
+		return ErrInventoryItemNotFound
+	}
+	if _, ok := item.(domain.Vehicle); !ok {
+		return ErrNotVehicle
+	}
+	s.removeAt(index)
+	return nil
+}
+
+func (s *Service) RemoveItem(number int) error {
+	index, item, found := s.findInventoryItem(number)
+	if !found {
+		return ErrInventoryItemNotFound
+	}
+	if _, ok := item.(domain.Vehicle); ok {
+		return ErrVehicleRemovalRequired
+	}
+	s.removeAt(index)
+	return nil
+}
+
+func (s *Service) removeAt(index int) {
+	copy(s.inventory[index:], s.inventory[index+1:])
+	s.inventory[len(s.inventory)-1] = nil
+	s.inventory = s.inventory[:len(s.inventory)-1]
+}
+
 func (s *Service) VehicleCount() int {
 	count := 0
 
@@ -68,6 +111,10 @@ func (s *Service) VehicleCount() int {
 	}
 
 	return count
+}
+
+func (s *Service) InventoryCount() int {
+	return len(s.inventory)
 }
 
 func (s *Service) TotalEnergyConsumption() float64 {
